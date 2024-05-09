@@ -1,35 +1,39 @@
 #!/usr/bin/python3
-"""An algorithm to validate if data is a valid UTF-8 encoded data"""
-
+"""  UTF-8 validation """
 
 def validUTF8(data):
-    # Variable to track the number of consecutive leading '1' bits
-    num_consecutive_ones = 0
+    """
+    This function determines if a given data set
+    represents a valid UTF-8 encoding.
+    """
+    # Initialize the number of bytes remaining in the current character sequence
+    num_bytes = 0
 
-    # Iterate through each integer in the data set
+    # Iterate through each byte in the data
     for byte in data:
-        # Check the 8th bit (from the left)
-        eighth_bit = (byte & 0b10000000) >> 7
+        # Ensure each byte is treated as an unsigned 8-bit integer
+        byte = byte & 255
 
-        if num_consecutive_ones == 0:
-            # Count consecutive leading '1' bits in the first byte
-            while (byte & (0b10000000 >> num_consecutive_ones)) != 0:
-                num_consecutive_ones += 1
-
-            # Validate the number of bytes for the current character
-            if num_consecutive_ones == 1 or num_consecutive_ones > 4:
+        # If we're in the middle of a multi-byte sequence
+        if num_bytes > 0:
+            # Check if the byte is a continuation byte (starts with '10')
+            if not (byte & 0b11000000 == 0b10000000):
                 return False
-
-            # Decrement num_consecutive_ones for the current character
-            num_consecutive_ones = max(num_consecutive_ones - 1, 0)
-
+            # Decrease the number of bytes remaining in the sequence
+            num_bytes -= 1
+        # If this is the start of a new character sequence
         else:
-            # For continuation bytes, check if the 8th bit is '1'
-            # and the 7th bit is '0'
-            if eighth_bit == 1 and ((byte & 0b01000000) >> 6) == 0:
-                num_consecutive_ones -= 1
+            # Determine the number of bytes in the sequence based on the leading bits
+            if byte & 0b10000000 == 0:
+                num_bytes = 0
+            elif byte & 0b11100000 == 0b11000000:
+                num_bytes = 1
+            elif byte & 0b11110000 == 0b11100000:
+                num_bytes = 2
+            elif byte & 0b11111000 == 0b11110000:
+                num_bytes = 3
             else:
                 return False
 
-    # Check if all characters are validated
-    return num_consecutive_ones == 0
+    # If there are no incomplete character sequences remaining, the encoding is valid
+    return num_bytes == 0
